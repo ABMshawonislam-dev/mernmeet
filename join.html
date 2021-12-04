@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+          <a class="navbar-brand" href="#">
+              <strong>MERNMEET</strong>
+          </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+              <li class="nav-item me-4">
+                <button type="button" class="btn btn-primary focusInput">Join Meeting</button>
+              </li>
+              <li class="nav-item">
+                <button type="button" class="btn btn-success newmeeting">Start Meeting</button>
+              </li>
+            
+              
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+
+      <section>
+          <div class="container">
+              <div class="row">
+                  <div class="col-lg-6">
+                    <div class="card" style="margin-top: 300px;">
+                        <div class="card-body">
+                          <h1 class="card-title">Let's Join The Meeting For Learn and Share Knowlwdge About MERN Stack.</h1>
+                          <p class="card-text">You are glade to see you here</p>
+                          <div class="box d-flex">
+                            <button type="button" class="btn btn-success newmeeting">Start Metting</button>
+                            <input type="email" class="form-control focus" style="width: 50%; margin: 0 20px;" placeholder="Meeting Id">
+                            <button type="button" class="btn btn-dark joinmeeting">Join Now</button>
+                          </div>
+                        </div>
+                      </div>
+                  </div>
+                  <div class="col-lg-6 " style="text-align: right;">
+                      <img style="height: 100vh;" src="images/banner.jpg" alt="">
+                  </div>
+              </div>
+          </div>
+      </section>
+
+
+
+     <script src="js/jquery-1.12.4.min.js"></script> 
+    <script src="js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(".focusInput").click(function(){
+            $(".focus").focus()
+            $(".focus").css("border","2px solid green")
+        })
+
+        $(".joinmeeting").click(function(){
+          let joinId = $(".focus").val()
+          let meetUrl = window.location.origin+`?meetingid=${joinId}`
+          window.location.replace(meetUrl)
+
+
+        })
+
+        $(".newmeeting").click(function(){
+          let meetingid = Math.floor(Math.random()*100000000)
+          let meetUrl = window.location.origin+`?meetingid=${meetingid}`
+          window.location.replace(meetUrl)
+        })
+
+
+    </script>
+</body>
+</html>

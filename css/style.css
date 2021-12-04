@@ -1,0 +1,39 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+
+.home{
+    background: #000;
+    height: 93vh;
+}
+
+.v-bottom{
+    padding: 20px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    left: 0;
+}
+
+.v-bottom i{
+    margin: 0 15px;
+}
+
+.v-top-right{
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.v-top-right i{
+    margin: 30px;
+}
+
+.cursor-pointer{
+    cursor: pointer;
+}
+
+.call-onoff{
+    color: red;
+}
