@@ -1,20 +1,44 @@
 let myvdoapp = (function(){
 
-    function init(userid,meetingid){
-        userConnectionFromClient()
+    function init(username,meetingid){
+        userConnectionFromClient(username,meetingid)
     }
 
     let socket = null
-    function userConnectionFromClient(){
+    function userConnectionFromClient(username,meetingid){
         socket = io.connect()
         socket.on("connect",()=>{
-            alert("Socket from Client side")
+            if(socket.connected){
+              if(username != "" && meetingid != "")  {
+                  socket.emit("userconnect",{
+                      username:username,
+                      meetingid:meetingid
+                  })
+              }
+            }
         })
+
+        socket.on("myinformation",(dataserver)=>{
+            adduservideo(dataserver.myusername,dataserver.connetid)
+        })
+
+        function adduservideo(myusername,connetid){
+            let newuservideo = $("#otherself").clone()
+            newuservideo = newuservideo.attr("id",connetid).addClass("other")
+            newuservideo.find("h1").text(myusername)
+            newuservideo.find("video").attr("id",`video_${connetid}`)
+            newuservideo.find("audio").attr("id",`audio_${connetid}`)
+            newuservideo.show()
+            $(".top-remote-video").append(newuservideo)
+
+        }
+
+
     }
 
     return {
-        init: function(userid,meetingid){
-            init(userid,meetingid)
+        init: function(username,meetingid){
+            init(username,meetingid)
         }
     }
 })()

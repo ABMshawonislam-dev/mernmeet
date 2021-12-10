@@ -12,7 +12,25 @@ const io = require("socket.io")(server)
 
 app.use(express.static(path.join(__dirname,"")))
 
-
+let userConnection = []
 io.on("connection",(socket)=>{
-    console.log("Socket ID from Server Side",socket.id)
+    // console.log("Socket ID from Server Side",socket.id)
+    
+    socket.on("userconnect",(dataclient)=>{
+        let myid = userConnection.filter((user)=> user.meetingid == dataclient.meetingid)
+        userConnection.push({
+            connectionId:socket.id,
+            username: dataclient.username,
+            meetingid: dataclient.meetingid
+        })
+
+        myid.forEach((item)=>{
+            socket.to(item.connectionId).emit("myinformation",{
+                myusername: dataclient.username,
+                connetid: socket.id
+            })
+        })
+    })
+   
 })
+

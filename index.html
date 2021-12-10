@@ -27,6 +27,7 @@
                             <video autoplay muted></video>
                             <audio autoplay controls muted style="display: none;"></audio>
                         </div>
+                        
                     </div>
                 </div>
             </div>
@@ -74,13 +75,13 @@
         let urlid = new URLSearchParams(window.location.search)
         let meetingID = urlid.get('meetingid')
 
-        let userID = window.prompt("Enter Your User Name Or Meetign ID")
+        let username = window.prompt("Enter Your User Name")
 
-        if(!userID || !meetingID){
+        if(!username || !meetingID){
             alert("User Name or USer Id is missing")
         }
 
-        myvdoapp.init(userID,meetingID)
+        myvdoapp.init(username,meetingID)
 
     </script>
 </body>
