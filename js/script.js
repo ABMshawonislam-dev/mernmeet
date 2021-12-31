@@ -1,9 +1,11 @@
 let videoProcess = (function(){
     let peers_connection_ids = []
     let peers_connection = []
+    let remote_video_stream = []
+    let remote_audio_stream = []
 
     let serverProcess;
-    function init(SDPfuntion,myid){
+    async function init(SDPfuntion,myid){
         serverProcess = SDPfuntion
         myconnectionid = myid
     }
@@ -19,7 +21,7 @@ let videoProcess = (function(){
         ]
     }
 
-    function setConnection(connetid){
+   async function setConnection(connetid){
         let connection = new RTCPeerConnection(configaration)
 
 
@@ -34,12 +36,43 @@ let videoProcess = (function(){
         }
 
         connection.ontrack = function(event){
+            if(!remote_video_stream[connetid]){
+                remote_video_stream[connetid] = new MediaStream()
+            }
+            if(!remote_audio_stream[connetid]){
+                remote_audio_stream[connetid] = new MediaStream()
+            }
+
+            if(event.track.kind == "video"){
+                remote_video_stream[connetid]
+                .getVideoTracks()
+                .forEach((t)=> remote_video_stream[connetid].removeTrack(t))
+
+                remote_video_stream[connetid].addTrack(event.track)
+                let remoteVideo = document.querySelector("video_"+connetid)
+                remoteVideo.srcObject = null
+                remoteVideo.srcObject = remote_video_stream[connetid]
+                remoteVideo.load()
+            }else if(event.track.kind == "audio"){
+                remote_audio_stream[connetid]
+                .getVideoTracks()
+                .forEach((t)=> remote_audio_stream[connetid].removeTrack(t))
+
+                remote_audio_stream[connetid].addTrack(event.track)
+                let remoteAudio = document.querySelector("audio_"+connetid)
+                remoteAudio.srcObject = null
+                remoteAudio.srcObject = remote_audio_stream[connetid]
+                remoteAudio.load()
+            }
+
 
         }
 
 
         peers_connection_ids[connetid] = connetid
         peers_connection[connetid] = connection
+
+        return connection
     
     }
 
@@ -51,12 +84,41 @@ let videoProcess = (function(){
     }
 
 
+    async function SDPprocess(message,from_id){
+        message = JSON.parse(message)
+        if(message.awnswer){
+            await peers_connection(from_id).setRemoteDescription(new RTCSessionDescription(message.awnswer))
+        }else if(message.offer){
+            if(!peers_connection(from_id)){
+                await setConnection(from_id)
+            }
+            await peers_connection(from_id).setRemoteDescription(new RTCSessionDescription(message.offer))
+            let answer = await peers_connection(from_id).createAnswer();
+            await peers_connection(from_id).setLocalDescription(answer)
+            serverProcess(JSON.stringify({answer: answer}),from_id)
+        }else if(message.icecandidate){
+            if(!peers_connection(from_id)){
+                await setConnection(from_id)
+            }
+
+            try{
+                await peers_connection(from_id).addIceCandidate(message.icecandidate)
+            }catch(err){
+                console.log(err)
+            }
+        }
+    }
+
+
     return {
         setNewVideoConnection: async function(connetid){
             await setConnection(connetid)
         },
         init: async function (SDPfuntion,myid){
             await init(SDPfuntion,myid)
+        },
+        processClient: async function(data,connid){
+            await SDPprocess(data,connid)
         }
     }
 })()
@@ -94,6 +156,10 @@ let myvdoapp = (function(){
             adduservideo(dataserver.myusername,dataserver.connetid)
             // setNewVideoConnection(dataserver.connetid)
             videoProcess.setNewVideoConnection(dataserver.connetid)
+        })
+
+        socket.on("SDPprocess",async function(data){
+            await videoProcess.processClient(data.message,data.from_connid)
         })
 
         function adduservideo(myusername,connetid){
