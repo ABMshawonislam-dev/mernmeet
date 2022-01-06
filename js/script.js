@@ -3,12 +3,98 @@ let videoProcess = (function(){
     let peers_connection = []
     let remote_video_stream = []
     let remote_audio_stream = []
+    let local_div;
+    let audio;
+    let isAudioMute = true;
+    let audio_sender = []
+    let video_state = {
+        none: 0,
+        camera: 1,
+        screenshare: 2,
+    }
 
+    let video_st = video_state.none
+    let videoCameraTrack;
     let serverProcess;
     async function init(SDPfuntion,myid){
         serverProcess = SDPfuntion
         myconnectionid = myid
+        eventProcess()
+        local_div = document.getElementById("localVideo")
     }
+
+    function eventProcess(){
+        $("#micOnOff").click(async function(){
+            if(!audio){
+                await loadAudio()
+            }
+            if(!audio){
+                alert("Audio Permission Has Not Granted")
+            }
+
+            if(isAudioMute){
+                audio.enabled = true
+                $("#micOnOff").html('<i class="fas fa-microphone"></i>')
+                updateMediaSender(audio,audio_sender)
+            }else{
+                audio.enabled = false
+                $("#micOnOff").html('<i class="fas fa-microphone-slash"></i>')
+                removeMediaSender(audio_sender)
+            }
+            isAudioMute = !isAudioMute
+                            
+        })
+
+        $("#videoOnOff").click(async function(){
+            if(video_st == video_state.camera){
+                await deviceVideoProcess(video_state.none)
+            }else{
+                await deviceVideoProcess(video_state.camera)
+            }
+        })
+
+        $("#shareOnOff").click(async function(){
+            if(video_st == video_state.screenshare){
+                await deviceVideoProcess(video_state.none)
+            }else{
+                await deviceVideoProcess(video_state.screenshare)
+            }
+        })
+    }
+
+    async function deviceVideoProcess(newVideoState){
+        try{
+            let vstream = null
+            if(newVideoState == video_state.camera){
+                vstream = await navigator.mediaDevices.getUserMedia({
+                    video:{
+                        width:1920,
+                        height: 1080,
+                    },
+                    audio: false,
+                })
+            }else if(newVideoState == video_state.screenshare){
+                vstream = await navigator.mediaDevices.getDisplayMedia({
+                    video:{
+                        width:1920,
+                        height: 1080,
+                    },
+                    audio: false,
+                })
+            }
+            if(vstream && vstream.getVideoTracks().length > 0){
+                videoCameraTrack = vstream.getVideoTracks()[0]
+                if(videoCameraTrack){
+                    local_div.srcObject = new MediaStream([videoCameraTrack])
+                }
+            }
+        }catch(err){
+            console.log(err)
+            return;
+        }
+        video_st = newVideoState
+    }
+
 
     let configaration ={
         connectionServer:[
@@ -49,17 +135,17 @@ let videoProcess = (function(){
                 .forEach((t)=> remote_video_stream[connetid].removeTrack(t))
 
                 remote_video_stream[connetid].addTrack(event.track)
-                let remoteVideo = document.querySelector("video_"+connetid)
+                let remoteVideo = document.getElementById("video_"+connetid)
                 remoteVideo.srcObject = null
                 remoteVideo.srcObject = remote_video_stream[connetid]
                 remoteVideo.load()
             }else if(event.track.kind == "audio"){
                 remote_audio_stream[connetid]
-                .getVideoTracks()
+                .getAudioTracks()
                 .forEach((t)=> remote_audio_stream[connetid].removeTrack(t))
 
                 remote_audio_stream[connetid].addTrack(event.track)
-                let remoteAudio = document.querySelector("audio_"+connetid)
+                let remoteAudio = document.getElementById("audio_"+connetid)
                 remoteAudio.srcObject = null
                 remoteAudio.srcObject = remote_audio_stream[connetid]
                 remoteAudio.load()
@@ -86,8 +172,8 @@ let videoProcess = (function(){
 
     async function SDPprocess(message,from_id){
         message = JSON.parse(message)
-        if(message.awnswer){
-            await peers_connection(from_id).setRemoteDescription(new RTCSessionDescription(message.awnswer))
+        if(message.answer){
+            await peers_connection(from_id).setRemoteDescription(new RTCSessionDescription(message.answer))
         }else if(message.offer){
             if(!peers_connection(from_id)){
                 await setConnection(from_id)
