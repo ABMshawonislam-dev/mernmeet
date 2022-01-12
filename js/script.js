@@ -15,6 +15,7 @@ let videoProcess = (function(){
 
     let video_st = video_state.none
     let videoCameraTrack;
+    let rtp_video_senders = []
     let serverProcess;
     async function init(SDPfuntion,myid){
         serverProcess = SDPfuntion
@@ -62,6 +63,29 @@ let videoProcess = (function(){
         })
     }
 
+    function connection_status(connection){
+        if(connection && (connection.connectionState == "new" || connection.connectionState == "connecting" || connection.connectionState == "connected")  ){
+            return true
+        }else{
+            return false
+        }
+    }
+    
+
+    async function updateMediaSender(track,rtp_senders){
+        for(var conntid in peers_connection_ids){
+            if(connection_status(peers_connection[conntid])){
+                if(rtp_senders[conntid] && rtp_senders[conntid].track){
+                    rtp_senders[conntid].replaceTrack(track)
+                }else{
+                    rtp_senders[conntid] = peers_connection[conntid].addTrack(track)
+                }
+            }
+        }
+    }
+
+   
+
     async function deviceVideoProcess(newVideoState){
         try{
             let vstream = null
@@ -86,6 +110,7 @@ let videoProcess = (function(){
                 videoCameraTrack = vstream.getVideoTracks()[0]
                 if(videoCameraTrack){
                     local_div.srcObject = new MediaStream([videoCameraTrack])
+                    updateMediaSender(videoCameraTrack,rtp_video_senders)
                 }
             }
         }catch(err){
@@ -108,6 +133,7 @@ let videoProcess = (function(){
     }
 
    async function setConnection(connetid){
+       console.log("connectid",connetid)
         let connection = new RTCPeerConnection(configaration)
 
 
@@ -129,6 +155,8 @@ let videoProcess = (function(){
                 remote_audio_stream[connetid] = new MediaStream()
             }
 
+            console.log(event.track.kind)
+
             if(event.track.kind == "video"){
                 remote_video_stream[connetid]
                 .getVideoTracks()
@@ -136,6 +164,8 @@ let videoProcess = (function(){
 
                 remote_video_stream[connetid].addTrack(event.track)
                 let remoteVideo = document.getElementById("video_"+connetid)
+                console.log(remoteVideo)
+                console.log(connetid)
                 remoteVideo.srcObject = null
                 remoteVideo.srcObject = remote_video_stream[connetid]
                 remoteVideo.load()
@@ -158,12 +188,20 @@ let videoProcess = (function(){
         peers_connection_ids[connetid] = connetid
         peers_connection[connetid] = connection
 
+        if(video_st == video_state.camera || video_st == video_state.screenshare){
+            if(videoCameraTrack){
+
+                updateMediaSender(videoCameraTrack,rtp_video_senders)
+            }
+
+        }
+        
         return connection
     
     }
 
     async function setOffer(connectionID){
-        let connection = peers_connection[connetid]
+        let connection = peers_connection[connectionID]
         let offer = await connection.createOffer()
         await connection.setLocalDescription(offer)
         serverProcess(JSON.stringify({offer:connection.localDescription}),connectionID)
@@ -173,22 +211,26 @@ let videoProcess = (function(){
     async function SDPprocess(message,from_id){
         message = JSON.parse(message)
         if(message.answer){
-            await peers_connection(from_id).setRemoteDescription(new RTCSessionDescription(message.answer))
+            await peers_connection[from_id].setRemoteDescription(new RTCSessionDescription(message.answer))
         }else if(message.offer){
-            if(!peers_connection(from_id)){
-                await setConnection(from_id)
+            if(!peers_connection[from_id]){
+                await setConnection[from_id]
             }
-            await peers_connection(from_id).setRemoteDescription(new RTCSessionDescription(message.offer))
-            let answer = await peers_connection(from_id).createAnswer();
-            await peers_connection(from_id).setLocalDescription(answer)
+            console.log("ami",peers_connection)
+            // await peers_connection[from_id].setRemoteDescription(new RTCSessionDescription(message.offer))
+            await peers_connection[from_id].setRemoteDescription(
+                new RTCSessionDescription(message.offer)
+              );
+            let answer = await peers_connection[from_id].createAnswer();
+            await peers_connection[from_id].setLocalDescription(answer)
             serverProcess(JSON.stringify({answer: answer}),from_id)
         }else if(message.icecandidate){
-            if(!peers_connection(from_id)){
+            if(!peers_connection[from_id]){
                 await setConnection(from_id)
             }
 
             try{
-                await peers_connection(from_id).addIceCandidate(message.icecandidate)
+                await peers_connection[from_id].addIceCandidate(message.icecandidate)
             }catch(err){
                 console.log(err)
             }
@@ -215,10 +257,12 @@ let myvdoapp = (function(){
 
     function init(username,meetingid){
         userConnectionFromClient(username,meetingid)
+        $("#myself").find("h1").text(username)
     }
 
     let socket = null
     function userConnectionFromClient(username,meetingid){
+        
         socket = io.connect()
         function SDPfunction(data,connetionId){
             socket.emit("SDPprocess",{
@@ -239,12 +283,14 @@ let myvdoapp = (function(){
         })
 
         socket.on("myinformation",(dataserver)=>{
+            console.log("dataserver",dataserver)
             adduservideo(dataserver.myusername,dataserver.connetid)
             // setNewVideoConnection(dataserver.connetid)
             videoProcess.setNewVideoConnection(dataserver.connetid)
         })
 
         socket.on("SDPprocess",async function(data){
+            console.log("ami cliect",data.from_connid)
             await videoProcess.processClient(data.message,data.from_connid)
         })
 

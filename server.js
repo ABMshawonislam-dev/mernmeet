@@ -25,6 +25,7 @@ io.on("connection",(socket)=>{
         })
 
         myid.forEach((item)=>{
+            console.log("kire",item.connectionId)
             socket.to(item.connectionId).emit("myinformation",{
                 myusername: dataclient.username,
                 connetid: socket.id
@@ -32,12 +33,12 @@ io.on("connection",(socket)=>{
         })
     })
 
-    socket.on("SDPprocess",(data)=>{
-        socket.to(data.connetionId).emit("SDPprocess"),{
-            message: data.message,
-            from_connid:data.connetionId
-        }
-    })
+    socket.on("SDPprocess", (data) => {
+        socket.to(data.connetionId).emit("SDPprocess", {
+          message: data.message,
+          from_connid: socket.id,
+        });
+      });
    
 })
 
